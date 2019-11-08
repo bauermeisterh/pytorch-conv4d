@@ -13,7 +13,7 @@ import numpy as np
 # CLASS DEFINITIONS
 # -----------------------------------------------------------------------------
 
-class Conv4d:
+class Conv4d(torch.nn.Module):
 
     def __init__(self,
                  in_channels: int,
@@ -51,7 +51,11 @@ class Conv4d:
         self.kernel_size = kernel_size
         self.padding = padding
         self.groups = groups
-        self.bias = bias
+        if bias:
+            self.bias = torch.nn.Parameter(torch.randn(out_channels))
+        else:
+            self.bias = None
+        #self.bias = bias
 
         self.bias_initializer = bias_initializer
         self.kernel_initializer = kernel_initializer
@@ -72,7 +76,8 @@ class Conv4d:
             conv3d_layer = torch.nn.Conv3d(in_channels=self.in_channels,
                                            out_channels=self.out_channels,
                                            kernel_size=(d_k, h_k, w_k),
-                                           padding=self.padding)
+                                           padding=self.padding,
+                                           bias=False)
 
             # Apply initializer functions to weight and bias tensor
             if self.kernel_initializer is not None:
@@ -119,7 +124,10 @@ class Conv4d:
                 else:
                     frame_results[out_frame] += frame_conv3d
 
-        return torch.stack(frame_results, dim=2)
+        if self.bias is None:            
+            return torch.stack(frame_results, dim=2)
+        else:
+            return torch.stack(frame_results, dim=2) + self.bias[:, None, None, None, None]
 
 
 # -----------------------------------------------------------------------------
